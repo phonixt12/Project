@@ -1,0 +1,97 @@
+select *
+from dbo.OnlineRetail
+
+update OnlineRetail 
+set stockcode=(case when stockcode is null then 0 else stockcode end)
+
+select Unitprice *Quantity as TotalCost
+from onlineretail
+
+Alter table onlineretail
+add totalcost float
+
+update OnlineRetail 
+set totalcost= (Unitprice *Quantity)
+
+alter table onlineretail
+add refunditem int
+update onlineretail
+set refunditem = quantity
+from onlineretail
+where quantity <0
+
+create table Refund
+ ( InvoiceRefundNo float,
+	ItemNo float,
+	description nvarchar(255),
+	quantity int,
+	DateRefund datetime,
+	unitprice float,
+	customerID decimal,
+	Total float
+	)
+
+	Select invoiceno,stockcode,description,quantity,invoicedate,unitprice,customerid,totalcost
+	from  onlineretail
+	where quantity <0
+
+	Insert into Refund (InvoiceRefundNo,ItemNo, description ,quantity ,DateRefund ,unitprice ,customerID ,Total )
+	select invoiceno,stockcode,description,quantity,invoicedate,unitprice,customerid,totalcost
+	from  onlineretail
+	where quantity <0
+
+
+	update Refund
+	set Total = total * -1
+	
+	update Refund
+	set quantity = quantity* -1
+
+	update OnlineRetail
+set InvoiceDate = CONVERT(varchar,InvoiceDate)
+
+	delete OnlineRetail
+	where quantity <0
+
+	delete refund
+	where total = 0
+
+	select *
+	from Refund
+	where description like'white hanging heart%'
+
+	create view Top10Iteam as 
+	select top 10 *
+	from OnlineRetail
+	order by totalrevenue desc 
+	
+	delete OnlineRetail
+	where description like'amazon fee'
+
+	delete Refund
+	where description like 'amazon fee' or description like'Discount' or description like'Manual' or description like'bank cha%' or description like'sam%' or description like'pos%'
+
+	create view Top10Refund as 
+	select top 10 *
+	from Refund
+	order by total desc 
+
+	create view Revenue as
+	select sum(totalrevenue) as Revenue
+	from OnlineRetail
+
+	create view TOtalrefund as 
+	select sum(total) as TotalRefund 
+	from refund
+	
+create view profit as
+select *, sum(revenue) -sum(Refund) Profit
+from (select *, sum(totalrevenue) revenue from OnlineRetail) a, (select *, sum(total) refund from Refund) b
+
+delete OnlineRetail
+where description is null
+use Portfolio
+
+select distinct customerID 
+from Refund
+group by customerID
