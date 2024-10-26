@@ -1,97 +1,126 @@
-select *
-from dbo.OnlineRetail
+-- Select all records from the OnlineRetail table
+SELECT *
+FROM dbo.OnlineRetail;
 
-update OnlineRetail 
-set stockcode=(case when stockcode is null then 0 else stockcode end)
+-- Update stockcode: set to 0 where it is NULL
+UPDATE OnlineRetail
+SET stockcode = CASE WHEN stockcode IS NULL THEN 0 ELSE stockcode END;
 
-select Unitprice *Quantity as TotalCost
-from onlineretail
+-- Calculate TotalCost for each record
+SELECT UnitPrice * Quantity AS TotalCost
+FROM OnlineRetail;
 
-Alter table onlineretail
-add totalcost float
+-- Add a new column 'totalcost' to the OnlineRetail table
+ALTER TABLE OnlineRetail
+ADD totalcost FLOAT;
 
-update OnlineRetail 
-set totalcost= (Unitprice *Quantity)
+-- Update 'totalcost' with the calculated values
+UPDATE OnlineRetail
+SET totalcost = UnitPrice * Quantity;
 
-alter table onlineretail
-add refunditem int
-update onlineretail
-set refunditem = quantity
-from onlineretail
-where quantity <0
+-- Add a new column 'refunditem' to the OnlineRetail table
+ALTER TABLE OnlineRetail
+ADD refunditem INT;
 
-create table Refund
- ( InvoiceRefundNo float,
-	ItemNo float,
-	description nvarchar(255),
-	quantity int,
-	DateRefund datetime,
-	unitprice float,
-	customerID decimal,
-	Total float
-	)
+-- Update 'refunditem' for records where quantity is negative
+UPDATE OnlineRetail
+SET refunditem = Quantity
+WHERE Quantity < 0;
 
-	Select invoiceno,stockcode,description,quantity,invoicedate,unitprice,customerid,totalcost
-	from  onlineretail
-	where quantity <0
+-- Create a new table 'Refund' to store refund transactions
+CREATE TABLE Refund (
+    InvoiceRefundNo FLOAT,
+    ItemNo FLOAT,
+    description NVARCHAR(255),
+    quantity INT,
+    DateRefund DATETIME,
+    unitprice FLOAT,
+    customerID DECIMAL,
+    Total FLOAT
+);
 
-	Insert into Refund (InvoiceRefundNo,ItemNo, description ,quantity ,DateRefund ,unitprice ,customerID ,Total )
-	select invoiceno,stockcode,description,quantity,invoicedate,unitprice,customerid,totalcost
-	from  onlineretail
-	where quantity <0
+-- Select refund transactions from OnlineRetail
+SELECT invoiceno, stockcode, description, quantity, invoicedate, unitprice, customerid, totalcost
+FROM OnlineRetail
+WHERE quantity < 0;
 
+-- Insert refund transactions into the Refund table
+INSERT INTO Refund (InvoiceRefundNo, ItemNo, description, quantity, DateRefund, unitprice, customerID, Total)
+SELECT invoiceno, stockcode, description, quantity, invoicedate, unitprice, customerid, totalcost
+FROM OnlineRetail
+WHERE quantity < 0;
 
-	update Refund
-	set Total = total * -1
-	
-	update Refund
-	set quantity = quantity* -1
+-- Adjust 'Total' and 'quantity' in the Refund table to positive values
+UPDATE Refund
+SET Total = Total * -1;
 
-	update OnlineRetail
-set InvoiceDate = CONVERT(varchar,InvoiceDate)
+UPDATE Refund
+SET quantity = quantity * -1;
 
-	delete OnlineRetail
-	where quantity <0
+-- Convert 'InvoiceDate' to VARCHAR format in OnlineRetail
+UPDATE OnlineRetail
+SET InvoiceDate = CONVERT(VARCHAR, InvoiceDate);
 
-	delete refund
-	where total = 0
+-- Delete refund transactions from OnlineRetail
+DELETE FROM OnlineRetail
+WHERE quantity < 0;
 
-	select *
-	from Refund
-	where description like'white hanging heart%'
+-- Delete records with zero 'Total' from Refund
+DELETE FROM Refund
+WHERE Total = 0;
 
-	create view Top10Iteam as 
-	select top 10 *
-	from OnlineRetail
-	order by totalrevenue desc 
-	
-	delete OnlineRetail
-	where description like'amazon fee'
+-- Select refunds with descriptions starting with 'white hanging heart'
+SELECT *
+FROM Refund
+WHERE description LIKE 'white hanging heart%';
 
-	delete Refund
-	where description like 'amazon fee' or description like'Discount' or description like'Manual' or description like'bank cha%' or description like'sam%' or description like'pos%'
+-- Create a view for the top 10 items by total revenue
+CREATE VIEW Top10Item AS
+SELECT TOP 10 *
+FROM OnlineRetail
+ORDER BY totalrevenue DESC;
 
-	create view Top10Refund as 
-	select top 10 *
-	from Refund
-	order by total desc 
+-- Delete specific records from OnlineRetail
+DELETE FROM OnlineRetail
+WHERE description LIKE 'amazon fee';
 
-	create view Revenue as
-	select sum(totalrevenue) as Revenue
-	from OnlineRetail
+-- Delete unwanted records from Refund
+DELETE FROM Refund
+WHERE description LIKE 'amazon fee'
+   OR description LIKE 'Discount'
+   OR description LIKE 'Manual'
+   OR description LIKE 'bank cha%'
+   OR description LIKE 'sam%'
+   OR description LIKE 'pos%';
 
-	create view TOtalrefund as 
-	select sum(total) as TotalRefund 
-	from refund
-	
-create view profit as
-select *, sum(revenue) -sum(Refund) Profit
-from (select *, sum(totalrevenue) revenue from OnlineRetail) a, (select *, sum(total) refund from Refund) b
+-- Create a view for the top 10 refunds
+CREATE VIEW Top10Refund AS
+SELECT TOP 10 *
+FROM Refund
+ORDER BY Total DESC;
 
-delete OnlineRetail
-where description is null
-use Portfolio
+-- Create a view for total revenue
+CREATE VIEW Revenue AS
+SELECT SUM(totalrevenue) AS Revenue
+FROM OnlineRetail;
 
-select distinct customerID 
-from Refund
-group by customerID
+-- Create a view for total refunds
+CREATE VIEW TotalRefund AS
+SELECT SUM(Total) AS TotalRefund
+FROM Refund;
+
+-- Create a view to calculate profit
+CREATE VIEW Profit AS
+SELECT
+    (SELECT SUM(totalrevenue) FROM OnlineRetail) - (SELECT SUM(Total) FROM Refund) AS Profit;
+
+-- Delete records with NULL descriptions from OnlineRetail
+DELETE FROM OnlineRetail
+WHERE description IS NULL;
+
+-- Switch to the 'Portfolio' database
+USE Portfolio;
+
+-- Select distinct customer IDs from Refund
+SELECT DISTINCT customerID
+FROM Refund;
